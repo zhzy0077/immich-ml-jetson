@@ -1,0 +1,24 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Login to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - name: Build and push
+        run: |
+          IMG=ghcr.io/${{ github.repository_owner }}/immich-ml-jetson
+          docker build -t "${IMG}:${GITHUB_REF_NAME}" -t "${IMG}:latest" .
+          docker push "${IMG}:${GITHUB_REF_NAME}"
+          docker push "${IMG}:latest"
