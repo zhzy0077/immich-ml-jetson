@@ -1,11 +1,11 @@
-# Immich Machine Learning (v3.1.0) — Jetson build
+# Immich Machine Learning (v3.2.2) — Jetson build
 #
 # CUDA-accelerated ML server for NVIDIA Jetson (tested: Orin Nano Super,
 # JetPack 7 / L4T R39.2, driver 595.78). Based on upstream
 # immich-app/immich machine-learning/Dockerfile (AGPL-3.0).
 #
 # Build on an arm64/Jetson host:
-#   docker build -t immich-ml-jetson:3.1.0 .
+#   docker build -t immich-ml-jetson:3.2.2 .
 #
 # Notes:
 #  - ONNX Runtime GPU wheel is the NVIDIA Jetson build (Jetson AI Lab devpi,
@@ -36,7 +36,10 @@ RUN --mount=type=cache,target=/root/.cache/uv \
       --compile-bytecode --no-progress --active --link-mode copy
 
 # NVIDIA Jetson ONNX Runtime GPU wheel (sha256-pinned; override the URL for
-# mirrors/offline builds).
+# mirrors/offline builds). NOTE: 1.23.0 is the newest jp6/cu129 cp312 wheel;
+# upstream v3.2.2 asks for onnxruntime>=1.23.2 (non-Jetson), but the Jetson
+# wheel is installed with --no-deps so the build stays green; only stable
+# ORT APIs are used at runtime.
 ARG ORT_WHEEL_URL=https://pypi.jetson-ai-lab.io/jp6/cu129/+f/2e3/a07114007df15/onnxruntime_gpu-1.23.0-cp312-cp312-linux_aarch64.whl
 ARG ORT_WHEEL_SHA256=2e3a07114007df15db673852d798d6f47f91362f0ac084d6fa04e414a06dc25e
 RUN curl -fL --retry 3 -o /tmp/ort.whl "${ORT_WHEEL_URL}" && \
@@ -73,7 +76,8 @@ COPY scripts/healthcheck.py .
 COPY immich_ml immich_ml
 
 ENV IMMICH_REPOSITORY=immich-app/immich \
-    IMMICH_REPOSITORY_URL=https://github.com/immich-app/immich
+    IMMICH_REPOSITORY_URL=https://github.com/immich-app/immich \
+    HF_HOME=/cache/hf-cache
 
 LABEL org.opencontainers.image.source="https://github.com/zhzy0077/immich-ml-jetson" \
       org.opencontainers.image.licenses="AGPL-3.0"
