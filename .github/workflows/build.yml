@@ -14,6 +14,10 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Sparse-checkout ML sources
+        run: git -C upstream sparse-checkout set machine-learning
       - name: Login to GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
       - name: Build and push

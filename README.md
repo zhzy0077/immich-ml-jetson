@@ -35,9 +35,23 @@ must be >= the container's CUDA 12.9 userland).
 
 ## Build
 
+`immich_ml/`, `pyproject.toml` and `uv.lock` are not vendored — they come
+from the `upstream` git submodule (`immich-app/immich`, pinned to the
+release tag). Clone with submodules and keep the checkout sparse:
+
 ```bash
+git clone --recurse-submodules --depth 1 --shallow-submodules https://github.com/zhzy0077/immich-ml-jetson
+git -C upstream sparse-checkout set machine-learning
 # on an arm64/Jetson host
 docker build -t ghcr.io/zhzy0077/immich-ml-jetson:3.2.2 .
+```
+
+To bump to a new upstream release:
+
+```bash
+git -C upstream fetch --tags origin
+git -C upstream checkout vX.Y.Z
+git add upstream
 ```
 
 `docker build` needs network access to Docker Hub (bases), ghcr.io (uv binary),

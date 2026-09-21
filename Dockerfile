@@ -4,6 +4,12 @@
 # JetPack 7 / L4T R39.2, driver 595.78). Based on upstream
 # immich-app/immich machine-learning/Dockerfile (AGPL-3.0).
 #
+# The ML sources (immich_ml/, pyproject.toml, uv.lock) come from the
+# `upstream` git submodule (immich-app/immich, pinned to the release tag);
+# after cloning, run:
+#   git submodule update --init --depth 1
+#   git -C upstream sparse-checkout set machine-learning
+#
 # Build on an arm64/Jetson host:
 #   docker build -t immich-ml-jetson:3.2.2 .
 #
@@ -27,7 +33,7 @@ RUN sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.li
 COPY --from=ghcr.io/astral-sh/uv:0.8.15@sha256:a5727064a0de127bdb7c9d3c1383f3a9ac307d9f2d8a391edc7896c54289ced0 /uv /uvx /bin/
 
 WORKDIR /src
-COPY uv.lock pyproject.toml ./
+COPY upstream/machine-learning/uv.lock upstream/machine-learning/pyproject.toml ./
 RUN sed -i \
       's|https://pypi.org/simple|https://mirrors.aliyun.com/pypi/simple|g; s|https://files.pythonhosted.org/packages|https://mirrors.aliyun.com/pypi/packages|g' \
       uv.lock
@@ -73,7 +79,7 @@ RUN sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.li
 WORKDIR /usr/src
 COPY --from=builder /opt/venv /opt/venv
 COPY scripts/healthcheck.py .
-COPY immich_ml immich_ml
+COPY upstream/machine-learning/immich_ml immich_ml
 
 ENV IMMICH_REPOSITORY=immich-app/immich \
     IMMICH_REPOSITORY_URL=https://github.com/immich-app/immich \
