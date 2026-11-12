@@ -2,8 +2,8 @@
 
 CUDA-accelerated **Immich Machine Learning** container for **NVIDIA Jetson**,
 built from the official [immich-app/immich](https://github.com/immich-app/immich)
-release source (v3.2.2). Available as
-`ghcr.io/zhzy0077/immich-ml-jetson:3.2.2`.
+release source (v3.4.1). Available as
+`ghcr.io/zhzy0077/immich-ml-jetson:3.4.1`.
 
 This is a **Jetson/L4T build** — it is *not* the generic amd64 or ARM-server
 CUDA image (Jetson needs the L4T driver stack, `--runtime=nvidia`, and the
@@ -20,14 +20,17 @@ must be >= the container's CUDA 12.9 userland).
 
 ## Image contents
 
-- Immich machine-learning **v3.2.2** (`python -m immich_ml`, port 3003)
-- Python 3.12, `uv`-synced dependencies
+- Immich machine-learning **v3.4.1** (`python -m immich_ml`, port 3003)
+- Python 3.12, `uv`-synced dependencies (upstream v3.4.1 defaults to 3.13;
+  the Jetson ORT wheel is cp312, so this build stays on 3.12)
 - **ONNX Runtime GPU 1.23.0** (NVIDIA Jetson AI Lab wheel, `jp6/cu129`,
   sha256-pinned in the Dockerfile) → CUDA + TensorRT + CPU execution providers
-  (newest `jp6/cu129` cp312 wheel; upstream asks for `>=1.23.2` on servers,
-  Jetson wheel installed with `--no-deps`)
-- Upstream v3.2.x no longer depends on `insightface` (vendored SCRFD decode +
-  ArcFace align + direct OCR pipeline); new runtime dep is `onnx>=1.22.0`
+  (newest `jp6/cu129` cp312 wheel; upstream v3.4.1 asks for `>=1.27.1` on
+  servers, Jetson wheel installed with `--no-deps`; v3.4.1's session code only
+  uses ORT APIs available in 1.23.0)
+- Upstream v3.4.1 pulls `immich-model` (graph rewrites / fp16 export) from its
+  git repo and uses `rapidocr` for OCR; runtime deps include `onnx>=1.22.0`,
+  `huggingface-hub>=1.0`, `numpy>=2.4`, `pillow>=13`
 - `HF_HOME=/cache/hf-cache` (matches upstream, rootless single-volume deploys)
 - CUDA 12.9 userland (cublas / cuDNN 9 / cudart) from PyPI wheels
 - No mimalloc preload, no CUDA-toolkit `compat/` lib paths (both break CUDA on
@@ -43,7 +46,7 @@ release tag). Clone with submodules and keep the checkout sparse:
 git clone --recurse-submodules --depth 1 --shallow-submodules https://github.com/zhzy0077/immich-ml-jetson
 git -C upstream sparse-checkout set machine-learning
 # on an arm64/Jetson host
-docker build -t ghcr.io/zhzy0077/immich-ml-jetson:3.2.2 .
+docker build -t ghcr.io/zhzy0077/immich-ml-jetson:3.4.1 .
 ```
 
 To bump to a new upstream release:
@@ -55,8 +58,9 @@ git add upstream
 ```
 
 `docker build` needs network access to Docker Hub (bases), ghcr.io (uv binary),
-the aliyun PyPI mirror and the NVIDIA Jetson AI Lab devpi (ORT wheel). For
-offline/China builds, pre-download the ORT wheel and pass
+the aliyun PyPI mirror, the NVIDIA Jetson AI Lab devpi (ORT wheel) and GitHub
+(upstream's `immich-model` git dependency). For offline/China builds,
+pre-download the ORT wheel and pass
 `--build-arg ORT_WHEEL_URL=file:///path/to/onnxruntime_gpu-...whl` (not supported
 for `file://` in RUN; use a local HTTP URL or a build with the wheel copied into
 the context instead).
@@ -81,7 +85,7 @@ docker run -d --name immich-ml \
   --device /dev/nvhost-dbg-gpu --device /dev/nvhost-gpu --device /dev/nvhost-nvsched-gpu \
   --device /dev/nvhost-power-gpu --device /dev/nvhost-prof-ctx-gpu --device /dev/nvhost-prof-dev-gpu \
   --device /dev/nvhost-prof-gpu --device /dev/nvhost-sched-gpu --device /dev/nvhost-tsg-gpu \
-  ghcr.io/zhzy0077/immich-ml-jetson:3.2.2
+  ghcr.io/zhzy0077/immich-ml-jetson:3.4.1
 ```
 
 Then point your Immich server at `http://<jetson-ip>:3003` as the remote ML
@@ -95,9 +99,9 @@ docker logs immich-ml | grep -A2 "Setting execution providers"
 # → ['CUDAExecutionProvider', 'CPUExecutionProvider']
 ```
 
-Measured on the Orin Nano Super: CLIP ViT-B/32 visual **~27 ms/image** (CUDA),
-~0.39 s/photo end-to-end via API (12 MP JPEG decode + embed); buffalo_l face
-detection ~0.49 s/photo.
+Measured on the Orin Nano Super with v3.2.2: CLIP ViT-B/32 visual
+**~27 ms/image** (CUDA), ~0.39 s/photo end-to-end via API (12 MP JPEG decode +
+embed); buffalo_l face detection ~0.49 s/photo.
 
 ## Notes / limitations
 

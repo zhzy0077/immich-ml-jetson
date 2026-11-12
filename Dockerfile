@@ -1,4 +1,4 @@
-# Immich Machine Learning (v3.2.2) — Jetson build
+# Immich Machine Learning (v3.4.1) — Jetson build
 #
 # CUDA-accelerated ML server for NVIDIA Jetson (tested: Orin Nano Super,
 # JetPack 7 / L4T R39.2, driver 595.78). Based on upstream
@@ -11,7 +11,7 @@
 #   git -C upstream sparse-checkout set machine-learning
 #
 # Build on an arm64/Jetson host:
-#   docker build -t immich-ml-jetson:3.2.2 .
+#   docker build -t immich-ml-jetson:3.4.1 .
 #
 # Notes:
 #  - ONNX Runtime GPU wheel is the NVIDIA Jetson build (Jetson AI Lab devpi,
@@ -27,7 +27,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     UV_DEFAULT_INDEX=https://mirrors.aliyun.com/pypi/simple/
 
 RUN sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list.d/debian.sources && \
-    apt-get update && apt-get install -y --no-install-recommends g++ curl && \
+    apt-get update && apt-get install -y --no-install-recommends g++ curl git && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=ghcr.io/astral-sh/uv:0.8.15@sha256:a5727064a0de127bdb7c9d3c1383f3a9ac307d9f2d8a391edc7896c54289ced0 /uv /uvx /bin/
@@ -43,9 +43,10 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 # NVIDIA Jetson ONNX Runtime GPU wheel (sha256-pinned; override the URL for
 # mirrors/offline builds). NOTE: 1.23.0 is the newest jp6/cu129 cp312 wheel;
-# upstream v3.2.2 asks for onnxruntime>=1.23.2 (non-Jetson), but the Jetson
-# wheel is installed with --no-deps so the build stays green; only stable
-# ORT APIs are used at runtime.
+# upstream v3.4.1 asks for onnxruntime-gpu>=1.27.1 (non-Jetson), but the
+# Jetson wheel is installed with --no-deps so the build stays green; v3.4.1's
+# session code only uses ORT APIs present in 1.23.0 (disabled_optimizers,
+# register_execution_provider_library, free-dimension overrides).
 ARG ORT_WHEEL_URL=https://pypi.jetson-ai-lab.io/jp6/cu129/+f/2e3/a07114007df15/onnxruntime_gpu-1.23.0-cp312-cp312-linux_aarch64.whl
 ARG ORT_WHEEL_SHA256=2e3a07114007df15db673852d798d6f47f91362f0ac084d6fa04e414a06dc25e
 RUN curl -fL --retry 3 -o /tmp/ort.whl "${ORT_WHEEL_URL}" && \
@@ -61,6 +62,7 @@ RUN uv pip install --index-url https://mirrors.aliyun.com/pypi/simple/ \
 FROM python:3.12-slim-trixie@sha256:229a2c5bfa27522db7815ea81f9bed70af17ccb9de9fc7ad142b1877b5830d36 AS prod
 
 ENV MACHINE_LEARNING_MODEL_ARENA=false \
+    DEVICE=cuda \
     TRANSFORMERS_CACHE=/cache \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
