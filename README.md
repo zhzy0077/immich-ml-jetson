@@ -114,6 +114,17 @@ embed); buffalo_l face detection ~0.49 s/photo.
 - If your host's driver layout differs (e.g., older JetPack with
   `/usr/lib/aarch64-linux-gnu/tegra`), adjust the libcuda/nvidia mounts to your
   host's actual paths.
+- **Do not substitute the PyPI `onnxruntime-gpu` aarch64 wheels** (1.31.x,
+  `manylinux_2_34_aarch64`, cp312/cp313). They are SBSA / ARM-server builds:
+  smoke-tested on this JP7 / L4T R39.2.1 Orin (`sm_87`, driver 595, CUDA 13.2)
+  they install, resolve the host CUDA libs and report `CUDAExecutionProvider`,
+  but any CUDA inference fails with `cudaErrorNoKernelImageForDevice` — no
+  kernel image/PTX usable on `sm_87`. CPU EP works; only the Jetson AI Lab
+  `jp6/cu129` wheel actually runs the CUDA EP. Verified 2026-11-12.
+- Jetson AI Lab publishes no `jp7` index and no cp313 wheel; the newest
+  `jp6/cu129` cp312 wheel is ORT 1.23.0 (1.24.0 is cp310-only). That is why
+  this image stays on Python 3.12 / ORT 1.23.0 while upstream v3.4.1 defaults
+  to Python 3.13 and `onnxruntime-gpu>=1.27.1`.
 
 ## License
 

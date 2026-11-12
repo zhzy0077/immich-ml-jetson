@@ -46,7 +46,9 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # upstream v3.4.1 asks for onnxruntime-gpu>=1.27.1 (non-Jetson), but the
 # Jetson wheel is installed with --no-deps so the build stays green; v3.4.1's
 # session code only uses ORT APIs present in 1.23.0 (disabled_optimizers,
-# register_execution_provider_library, free-dimension overrides).
+# register_execution_provider_library, free-dimension overrides). PyPI's
+# aarch64 onnxruntime-gpu wheels are SBSA builds that fail on Jetson (sm_87)
+# with cudaErrorNoKernelImageForDevice; do not substitute them here.
 ARG ORT_WHEEL_URL=https://pypi.jetson-ai-lab.io/jp6/cu129/+f/2e3/a07114007df15/onnxruntime_gpu-1.23.0-cp312-cp312-linux_aarch64.whl
 ARG ORT_WHEEL_SHA256=2e3a07114007df15db673852d798d6f47f91362f0ac084d6fa04e414a06dc25e
 RUN curl -fL --retry 3 -o /tmp/ort.whl "${ORT_WHEEL_URL}" && \
